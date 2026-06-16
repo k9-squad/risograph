@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 38% 93%;
+    --foreground: 24 14% 12%;
+
+    --card: 40 40% 96%;
+    --card-foreground: 24 14% 12%;
+
+    --popover: 40 40% 97%;
+    --popover-foreground: 24 14% 12%;
+
+    --primary: 13 100% 58%;
+    --primary-foreground: 40 40% 97%;
+
+    --secondary: 38 26% 86%;
+    --secondary-foreground: 24 14% 14%;
+
+    --muted: 38 24% 88%;
+    --muted-foreground: 28 8% 38%;
+
+    --accent: 38 30% 85%;
+    --accent-foreground: 24 14% 14%;
+
+    --destructive: 0 70% 48%;
+    --destructive-foreground: 40 40% 97%;
+
+    --border: 33 20% 78%;
+    --input: 33 20% 78%;
+    --ring: 13 90% 55%;
+
+    --paper: 41 45% 90%;
+    --ink: 24 14% 12%;
+
+    --radius: 0.65rem;
+  }
+
+  .dark {
+    --background: 25 10% 9%;
+    --foreground: 40 30% 90%;
+    --card: 25 9% 12%;
+    --card-foreground: 40 30% 90%;
+    --popover: 25 9% 12%;
+    --popover-foreground: 40 30% 90%;
+    --primary: 13 100% 60%;
+    --primary-foreground: 25 10% 9%;
+    --secondary: 25 8% 18%;
+    --secondary-foreground: 40 30% 90%;
+    --muted: 25 8% 18%;
+    --muted-foreground: 40 12% 60%;
+    --accent: 25 8% 20%;
+    --accent-foreground: 40 30% 90%;
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 40 30% 90%;
+    --border: 30 8% 24%;
+    --input: 30 8% 24%;
+    --ring: 13 90% 55%;
+    --paper: 41 45% 90%;
+    --ink: 24 14% 12%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    -webkit-tap-highlight-color: transparent;
+    background-image: radial-gradient(
+      hsl(var(--foreground) / 0.04) 1px,
+      transparent 1px
+    );
+    background-size: 4px 4px;
+  }
+
+  /* number-style readouts use tabular figures */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* react-colorful sizing inside popovers */
+.riso-picker .react-colorful {
+  width: 200px;
+  height: 160px;
+}
+.riso-picker .react-colorful__saturation {
+  border-radius: 0.4rem 0.4rem 0 0;
+}
+.riso-picker .react-colorful__hue {
+  height: 16px;
+  border-radius: 0 0 0.4rem 0.4rem;
+}
+.riso-picker .react-colorful__pointer {
+  width: 16px;
+  height: 16px;
+}
+
+@layer utilities {
+  .label-eyebrow {
+    @apply font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
