@@ -110,6 +110,14 @@ export function AdjustPanel({ api }: { api: SettingsApi }) {
         onChange={(v) => update({ brightness: v })}
       />
       <SliderField
+        label="Paper texture"
+        value={settings.texture}
+        min={0}
+        max={100}
+        unit="%"
+        onChange={(v) => update({ texture: v })}
+      />
+      <SliderField
         label="Paper grain"
         value={settings.grain}
         min={0}

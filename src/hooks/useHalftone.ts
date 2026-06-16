@@ -1,13 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { HalftoneSettings, RasterImage } from "@/lib/halftone";
+import type { HalftoneSettings, PaperTexture, RasterImage } from "@/lib/halftone";
+import paperTextureUrl from "@/assets/paper-texture.jpg";
 
-const PREVIEW_MAX = 900;
-const FULL_MAX = 2400;
+// Higher caps than before so previews stay crisp on large displays and exports
+// keep their detail. Rendering runs off the main thread in a worker.
+const PREVIEW_MAX = 1500;
+const FULL_MAX = 4000;
+const TEXTURE_MAX = 1100;
 
 interface SourceInfo {
   name: string;
   width: number;
   height: number;
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const el = new Image();
+    el.crossOrigin = "anonymous";
+    el.onload = () => resolve(el);
+    el.onerror = reject;
+    el.src = src;
+  });
 }
 
 /** Draw a loaded image onto an offscreen canvas, capped to `max` longest side. */
@@ -22,6 +36,26 @@ function rasterize(img: HTMLImageElement, max: number): RasterImage {
   ctx.drawImage(img, 0, 0, w, h);
   const { data } = ctx.getImageData(0, 0, w, h);
   return { data, width: w, height: h };
+}
+
+/**
+ * Build a luminance-only delta map from the paper texture: (lum - mean),
+ * roughly -1..1. Colour is discarded so the texture only modulates brightness.
+ */
+function buildTexture(img: HTMLImageElement): PaperTexture {
+  const { data, width, height } = rasterize(img, TEXTURE_MAX);
+  const n = width * height;
+  const lum = new Float32Array(n);
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const p = i * 4;
+    const l = (0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]) / 255;
+    lum[i] = l;
+    sum += l;
+  }
+  const mean = sum / n;
+  for (let i = 0; i < n; i++) lum[i] -= mean;
+  return { delta: lum, width, height };
 }
 
 export function useHalftone(settings: HalftoneSettings) {
@@ -57,18 +91,24 @@ export function useHalftone(settings: HalftoneSettings) {
       }
     };
     workerRef.current = worker;
+
+    // load the paper texture once and hand it to the worker
+    loadImage(paperTextureUrl)
+      .then((img) => {
+        const texture = buildTexture(img);
+        worker.postMessage({ type: "texture", texture }, [texture.delta.buffer]);
+      })
+      .catch(() => {
+        /* texture is optional — ignore load failures */
+      });
+
     return () => worker.terminate();
   }, []);
 
   const loadFile = useCallback(async (file: File) => {
     const url = URL.createObjectURL(file);
     try {
-      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const el = new Image();
-        el.onload = () => resolve(el);
-        el.onerror = reject;
-        el.src = url;
-      });
+      const img = await loadImage(url);
       const previewSrc = rasterize(img, PREVIEW_MAX);
       const fullSrc = rasterize(img, FULL_MAX);
       const worker = workerRef.current!;

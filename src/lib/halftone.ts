@@ -44,11 +44,23 @@ export interface HalftoneSettings {
   paper: string; // #rrggbb paper colour
   grain: number; // 0..100 paper grain amount
   bleed: number; // 0..100 mis-registration / ink bleed jitter
+  texture: number; // 0..100 paper texture (luminance-only) amount
   invert: boolean;
 }
 
 export interface RasterImage {
   data: Uint8ClampedArray;
+  width: number;
+  height: number;
+}
+
+/**
+ * Paper texture as a luminance-only modulation map. `delta` holds (lum - mean)
+ * in roughly -1..1 so only the texture's light/dark variation is applied — its
+ * colour never tints the print. Sampled with "cover" scaling onto any output.
+ */
+export interface PaperTexture {
+  delta: Float32Array;
   width: number;
   height: number;
 }
@@ -151,6 +163,7 @@ function buildSeparation(src: RasterImage, settings: HalftoneSettings): Uint8Arr
 export function renderHalftone(
   src: RasterImage,
   settings: HalftoneSettings,
+  texture?: PaperTexture | null,
 ): RasterImage {
   const { width: w, height: h } = src;
   const out = new Uint8ClampedArray(w * h * 4);
@@ -166,7 +179,10 @@ export function renderHalftone(
   }
 
   const inks = settings.inks.filter((ink) => ink.enabled);
-  if (inks.length === 0) return { data: out, width: w, height: h };
+  if (inks.length === 0) {
+    finalize(out, w, h, settings, texture);
+    return { data: out, width: w, height: h };
+  }
 
   const allMaps = buildSeparation(src, settings);
   const enabledIndex = settings.inks
@@ -174,7 +190,6 @@ export function renderHalftone(
     .filter(({ ink }) => ink.enabled);
 
   const cell = Math.max(2, settings.cell);
-  const grain = settings.grain / 100;
   const bleed = (settings.bleed / 100) * cell * 0.5;
   const shape = settings.dotShape;
   // max dot radius at full ink. At dotScale 1 a circle just fills the cell
@@ -250,7 +265,46 @@ export function renderHalftone(
     }
   }
 
-  // paper grain — subtle multiplicative noise
+  finalize(out, w, h, settings, texture);
+  return { data: out, width: w, height: h };
+}
+
+/**
+ * Apply paper finish to the composited buffer: scanned paper texture
+ * (luminance-only) followed by random grain. Both are multiplicative so they
+ * read as the paper showing through the ink, never as a colour cast.
+ */
+function finalize(
+  out: Uint8ClampedArray,
+  w: number,
+  h: number,
+  settings: HalftoneSettings,
+  texture?: PaperTexture | null,
+) {
+  const texAmt = settings.texture / 100;
+  if (texture && texAmt > 0) {
+    const { delta, width: tw, height: th } = texture;
+    // "cover" the output with the texture, preserving its aspect ratio
+    const scale = Math.max(w / tw, h / th);
+    const dw = tw * scale;
+    const dh = th * scale;
+    const offX = (dw - w) / 2;
+    const offY = (dh - h) / 2;
+    for (let y = 0; y < h; y++) {
+      const ty = Math.min(th - 1, Math.max(0, ((y + offY) / scale) | 0));
+      for (let x = 0; x < w; x++) {
+        const tx = Math.min(tw - 1, Math.max(0, ((x + offX) / scale) | 0));
+        // delta is roughly -1..1; keep the modulation gentle
+        const factor = 1 + delta[ty * tw + tx] * texAmt * 0.6;
+        const o = (y * w + x) * 4;
+        out[o] *= factor;
+        out[o + 1] *= factor;
+        out[o + 2] *= factor;
+      }
+    }
+  }
+
+  const grain = settings.grain / 100;
   if (grain > 0) {
     for (let i = 0; i < w * h; i++) {
       const o = i * 4;
@@ -260,6 +314,4 @@ export function renderHalftone(
       out[o + 2] *= noise;
     }
   }
-
-  return { data: out, width: w, height: h };
 }

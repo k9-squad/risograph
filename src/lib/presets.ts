@@ -121,20 +121,23 @@ export const SCREEN_PRESETS: ScreenPreset[] = [
   { id: "gem", name: "Diamond", cell: 9, dotShape: "diamond", dotScale: 1.05 },
 ];
 
-export const DEFAULT_PRESET = COLOR_PRESETS[0];
+export const DEFAULT_PRESET =
+  COLOR_PRESETS.find((p) => p.id === "cmyk") ?? COLOR_PRESETS[0];
 
 export function defaultSettings(): HalftoneSettings {
   return {
     mode: DEFAULT_PRESET.mode,
     inks: DEFAULT_PRESET.inks.map((i) => ({ ...i })),
     paper: DEFAULT_PRESET.paper,
-    cell: 7,
-    dotShape: "line",
-    dotScale: 1.1,
-    contrast: 18,
+    // Fine Dot screen by default — a crisp classic CMYK rosette.
+    cell: 5,
+    dotShape: "circle",
+    dotScale: 1.0,
+    contrast: 16,
     brightness: 4,
-    grain: 24,
-    bleed: 10,
+    grain: 10,
+    bleed: 6,
+    texture: 70,
     invert: false,
   };
 }
