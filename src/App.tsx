@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Download,
+  ImagePlus,
   Layers,
   Moon,
   Palette,
@@ -25,6 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Dropzone } from "@/components/Dropzone";
+import { ImagePicker } from "@/components/ImagePicker";
 import { CanvasPreview } from "@/components/CanvasPreview";
 import { ExportDialog } from "@/components/ExportDialog";
 import { Section } from "@/components/controls/Section";
@@ -108,6 +110,14 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-1.5">
+            {source && (
+              <ImagePicker onFile={loadFile}>
+                <Button variant="outline" size="sm">
+                  <ImagePlus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Replace</span>
+                </Button>
+              </ImagePicker>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon-sm" onClick={toggle}>
